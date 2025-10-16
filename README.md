@@ -5,9 +5,15 @@
 conda create -n ProSiteHunter python=3.7.11
 conda activate ProSiteHunter
 ```
-### dependencies
+### ProSiteHunter dependencies
 Please refer to the requirement.txt file for details on the packages that need to be installed.
 
+### ProstT5 and SiteT5 dependencies
+```
+pip install torch
+pip install transformers
+pip install sentencepiece
+```
 ## Generate Feature
 ```
 python ./ProstT5_embedding_generate.py
