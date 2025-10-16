@@ -10,28 +10,16 @@ Please refer to the requirement.txt file for details on the packages that need t
 
 ## Generate Feature
 ```
-python ./data/utils/process_csv_to_fasta.py
-```
-Convert CSV to fasta file first
-
-```
 python ./data/utils/ProstT5_embedding_generate.py
 python ./data/utils/SiteT5_embedding_generate.py
-
 ```
+ProstT5  https://github.com/mheinzinger/ProstT5
+The generated embeddings of ProstT5 and SiteT5 can be downloaded in the releases.（https://github.com/iobio-zjut/ProSiteHunter/releases/tag/v1.0）
 Positional encoding, Physicochemical properties and BLOSUM62 will be automatically generated during training or testing. 
 Please visit NetSurfP-3.0 online server for RSA and Secondary structure generation (https://services.healthtech.dtu.dk/services/NetSurfP-3.0/)
 
-## Train
+## Train and Predict
 ```
-python ./main/S1131/train/train_S1131.py
+python ./main/train.py
+python ./main/predict.py
 ```
-Run this script to train the S1131 model, the same applies to other datasets.
-
-The weights of the trained model can be downloaded in releases (https://github.com/iobio-zjut/SAMPPI/releases/tag/v1.0)
-
-## Predict
-```
-python ./main/S1131/predict/predict_S1131.py
-```
-Run this script to predict the S1131 model, the same applies to other datasets
