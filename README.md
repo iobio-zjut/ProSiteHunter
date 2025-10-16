@@ -10,8 +10,8 @@ Please refer to the requirement.txt file for details on the packages that need t
 
 ## Generate Feature
 ```
-python ./data/utils/ProstT5_embedding_generate.py
-python ./data/utils/SiteT5_embedding_generate.py
+python ./ProstT5_embedding_generate.py
+python ./SiteT5_embedding_generate.py
 ```
 ProstT5  https://github.com/mheinzinger/ProstT5
 
