@@ -2,12 +2,12 @@
 
  ProSiteHunter, a unified sequence-based framework for predicting protein binding sites spanning protein-DNA, protein-RNA, protein-protein, and antibody-antigen interfaces. ProSiteHunter integrates the fine-tuned protein language model SiteT5 with evolutionary, geometric, and statistical features extracted from sequences. These representations are further processed through a Multi-Source Feature Fusion (MSFF) module, which captures bidirectional semantics, local associations, and global dependencies to achieve a comprehensive characterization of binding sites, thereby substantially improving predictive accuracy and generalization capability. Across comprehensive benchmarks, ProSiteHunter achieved a 39.1% average improvement in the area under the precision-recall curve (PRAUC) for protein-DNA/RNA/protein tasks and a 7.4% PRAUC enhancement on the particularly challenging antibody-antigen task over state-of-the-art methods. Moreover, ProSiteHunter is capable of identifying local flexible sites that complement AlphaFold3 predictions and improving the accuracy of antibody-antigen interaction prediction. 
  
-**Prof. Guijun Zhang**  
+Prof. Guijun Zhang
 College of Information Engineering  
 Zhejiang University of Technology, Hangzhou 310023, China  
 ✉️ Email: [zgj@zjut.edu.cn](mailto:zgj@zjut.edu.cn)
 
-## *Overall workflow for the DeepAAAssembly*
+## Pipeline of ProSiteHunter
 ![ProSiteHunter pipeline](pipeline.png)
 ## Install
 ### Create a Conda Environment
