@@ -137,12 +137,12 @@ def main(seed):
     init_seeds(seed)
 
     """Load preprocessed data."""
-    all_encode_prot5 = '/mydata/houdongliang/EnsemPPIS-master2/code/features/protein-DNA/129_siteT5.pkl'
-    all_encode_prostt5 = '/mydata/houdongliang/EnsemPPIS-master2/code/features/protein-DNA/129_prostt5.pkl'
-    fasta_file = '/mydata/houdongliang/EnsemPPIS-master2/code/dataset/protein-DNA/DNA-129_Test.fasta'
-    output_file2 = '/mydata/houdongliang/EnsemPPIS-master2/code/dataset/protein-DNA/out' + '.txt'
-    model_path="/mydata/houdongliang/EnsemPPIS-master2/code/model/protein-DNA.pkl"
-    feature_ss_rsa='/mydata/houdongliang/EnsemPPIS-master2/code/features/protein-DNA/test_rsa_ss.csv'
+    all_encode_prot5 = './features/protein-DNA/129_siteT5.pkl'
+    all_encode_prostt5 = './features/protein-DNA/129_prostt5.pkl'
+    fasta_file = './dataset/protein-DNA/DNA-129_Test.fasta'
+    output_file2 = './dataset/protein-DNA/out' + '.txt'
+    model_path="./model/protein-DNA.pkl"
+    feature_ss_rsa='./features/protein-DNA/test_rsa_ss.csv'
     with open(feature_ss_rsa, newline='') as file12:
         dict11 = feature2(file12)
     with open(all_encode_prot5, "rb") as fp_enc1:
