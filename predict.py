@@ -137,19 +137,19 @@ def main(seed):
     init_seeds(seed)
 
     """Load preprocessed data."""
-    all_encode_prot5 = './features/protein-DNA/129_siteT5.pkl'
-    all_encode_prostt5 = './features/protein-DNA/129_prostt5.pkl'
-    fasta_file = './dataset/protein-DNA/DNA-129_Test.fasta'
-    output_file2 = './dataset/protein-DNA/out' + '.txt'
+    all_encode_siteT5 = './protein_site.pkl'
+    all_encode_prostt5 = './protein_aa.pkl'
     model_path="./model/protein-DNA.pkl"
-    feature_ss_rsa='./features/protein-DNA/test_rsa_ss.csv'
+    feature_ss_rsa='./rsa.csv'
+    fasta_file = './protein.fasta'
+    output_file = './out_protein' + '.txt'
     with open(feature_ss_rsa, newline='') as file12:
         dict11 = feature2(file12)
-    with open(all_encode_prot5, "rb") as fp_enc1:
+    with open(all_encode_siteT5, "rb") as fp_enc1:
         all_encodes1 = pickle.load(fp_enc1)
     with open(all_encode_prostt5, "rb") as fp_enc2:
         all_encodes2 = pickle.load(fp_enc2)
-    f222 = open(output_file2, 'a')
+    f = open(output_file, 'a')
 
 
     """ create model and tester """
@@ -162,6 +162,7 @@ def main(seed):
     pf_dim = 256
     dropout = 0.1
     kernel_size = 7
+    score_num = 2
 
     encoder1 = Encoder_cnn(protein_dim1, hid_dim, n_layers, kernel_size, dropout, device)
     encoder2 = Encoder_lstm(protein_dim1, hid_dim, n_layers, kernel_size, dropout, device)
@@ -170,8 +171,11 @@ def main(seed):
     decoder2 = Decoder(local_dim1, hid_dim, n_layers, n_heads, pf_dim, DecoderLayer2, SelfAttention,
                        PositionwiseFeedforward2, dropout, device)
 
-    model2 = Predictor(encoder1, encoder2, encoder3, decoder2, device)
-
+    model2 = Predictor(encoder1, encoder2, encoder3, decoder2, device, score_num)
+    # protein-DNA task       score_num=2.5  !!!
+    # protein-RNA task       score_num=2  !!!!
+    # protein-protein task   score_num=2  !!!!
+    # antibody-antigen task  score_num=1.5  !!!!
     model2.load_state_dict(torch.load(
         model_path,
         map_location=torch.device('cpu')))
@@ -240,7 +244,7 @@ def main(seed):
         predicted_labels_test2, predicted_scores_test2 = tester2.test(test_loader2, device)
 
         for i in range(len(predicted_labels_test2)):
-            f222.write(name + '\t' + str(seq[i]) + '\t' + str(predicted_labels_test2[i]) + '\t' + str(
+            f.write(name + '\t' + str(seq[i]) + '\t' + str(predicted_labels_test2[i]) + '\t' + str(
                 predicted_scores_test2[i]) + '\n')
 
 if __name__ == "__main__":

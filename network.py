@@ -481,80 +481,111 @@ class Decoder(nn.Module):
         return sum, attention, label
 
 
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=None, gamma=2):
+        super().__init__()
+        self.gamma = gamma
+
+        if alpha is not None:
+            self.register_buffer("alpha", alpha)
+        else:
+            self.alpha = None
+
+    def forward(self, logits, targets):
+        ce_loss = F.cross_entropy(logits, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        loss = (1 - pt) ** self.gamma * ce_loss
+
+        if self.alpha is not None:
+            alpha_t = self.alpha[targets]   # ✅ 已自动在同一device
+            loss = alpha_t * loss
+
+        return loss.mean()
+
+
 class Predictor(nn.Module):
-    def __init__(self, encoder1, encoder2, encoder3, decoder, device):
+    def __init__(self, encoder1, encoder2, encoder3, decoder, device, score_num):
         super().__init__()
         self.encoder1 = encoder1
         self.encoder2 = encoder2
         self.encoder3 = encoder3
         self.decoder = decoder
         self.device = device
+        self.score_num=score_num
 
-    def make_masks(self,  protein_max_len):
-        #N = len(local_num)  # batch size
-        #local_mask = torch.zeros((N, local_max_len))
-        protein_mask = torch.zeros((protein_max_len, protein_max_len))
+        # ✅ 正确：alpha注册为buffer（自动跟随device）
+        self.register_buffer(
+            "alpha", torch.tensor([0.25, 0.75], dtype=torch.float32)
+        )
+
+        self.loss_fn = FocalLoss(alpha=self.alpha, gamma=2)
+
+    def make_masks(self, protein_max_len):
+        protein_mask = torch.zeros((protein_max_len, protein_max_len), device=self.device)
+
         for i in range(protein_max_len):
-            #local_mask[i, :local_num[i]] = 1
             protein_mask[i, :i] = 1
-        #local_mask = local_mask.unsqueeze(1).unsqueeze(3).to(self.device)
-        protein_mask = protein_mask.unsqueeze(0).unsqueeze(1).to(self.device)
-        #print('mask',protein_mask.shape)
-        return  protein_mask
 
-    def forward(self, protein1,protein2,protein3):
-        # local = [batch,local_num, local_dim]
-        # protein = [batch,protein len, 100]
+        protein_mask = protein_mask.unsqueeze(0).unsqueeze(1)  # [1,1,L,L]
+        return protein_mask
 
+    def _forward_impl(self, protein1, protein2, protein3):
         protein_max_len = protein1.shape[1]
-        protein_mask = self.make_masks( protein_max_len)
+        protein_mask = self.make_masks(protein_max_len)
 
-        enc_src1 = self.encoder1(protein1,protein2,protein3)
+        enc_src1 = self.encoder1(protein1, protein2, protein3)
         enc_src2 = self.encoder2(protein1, protein2, protein3)
         enc_src3 = self.encoder3(protein1, protein2, protein3)
-        # enc_src = [batch size, protein len, hid dim]
 
-        sum, attention, out = self.decoder.forward(enc_src1,enc_src2,enc_src3,  protein_mask)
+        output_sum, attention, logits = self.decoder(
+            enc_src1, enc_src2, enc_src3, protein_mask
+        )
 
-        return sum, attention, out
+        return output_sum, attention, logits
 
-    def __call__(self, data, train=None, valid=None):
+    def forward(self, data, mode='train'):
+        """
+        mode: 'train' / 'valid' / 'test'
+        """
 
-        Loss = nn.CrossEntropyLoss(weight=torch.from_numpy(np.array([1, 5])).float().to(self.device))
-
-        if train:
-            protein1,protein2,protein3,index,correct_interaction= data
-            sum, attention, predicted_interaction = self.forward(protein1,protein2,protein3)
-            #print('1qw',correct_interaction)
-            #print('2qw',predicted_interaction)
-            rounded_target = torch.round(correct_interaction)
-            # 将浮点数转换为 Long 类型张量
-            correct_interaction = rounded_target.type(torch.long)
-            #print('2qw', predicted_interaction)
-            loss2 = Loss(predicted_interaction, correct_interaction)
-            return loss2
-
-        elif valid:
+        if mode == 'train':
             protein1, protein2, protein3, index, labels = data
-            sum, attention, predicted_interaction = self.forward(protein1, protein2, protein3
-                                                                 )
-            labels = torch.round(labels)
-            labels = labels.type(torch.long)
-            loss2 = Loss(predicted_interaction, labels)
-            ys = F.softmax(predicted_interaction, 1).to('cpu').data.numpy()
-            predicted_labels = np.argmax(ys, axis=1)
-            predicted_scores = ys[:, 1]
 
-            return labels, predicted_labels, predicted_scores, loss2
-        else:
+            _, _, logits = self._forward_impl(protein1, protein2, protein3)
+
+            # ✅ label处理（标准）
+            labels = labels.long().view(-1)
+
+
+            loss = self.loss_fn(logits, labels)
+            return loss
+
+        elif mode == 'valid':
+            protein1, protein2, protein3, index, labels = data
+
+            _, _, logits = self._forward_impl(protein1, protein2, protein3)
+
+            labels = labels.long().view(-1)
+
+            loss = self.loss_fn(logits, labels)
+
+            probs = F.softmax(logits, dim=1)
+            predicted_labels = torch.argmax(probs, dim=1)
+            predicted_scores = probs[:, 1]
+
+            return labels, predicted_labels, predicted_scores, loss
+
+        else:  # test / inference
             protein1, protein2, protein3, index = data
-            sum, attention, predicted_interaction = self.forward(protein1, protein2, protein3
-                                                                 )
-            ys = F.softmax(predicted_interaction, 1).to('cpu').data.numpy()
-            predicted_labels = np.argmax(ys, axis=1)
-            predicted_scores = ys[:, 1]
-            return predicted_labels, predicted_scores
 
+            _, _, logits = self._forward_impl(protein1, protein2, protein3)
+            #score_num=2
+            logits=logits*self.score_num
+            probs = F.softmax(logits, dim=1)
+            predicted_labels = torch.argmax(probs, dim=1)
+            predicted_scores = probs[:, 1]
+
+            return predicted_labels, predicted_scores
 
 def todevice(protein1,protein2,protein3,index,label, device):
     # locals_new = torch.Tensor(locals).to(device)
@@ -607,7 +638,7 @@ class Trainer(object):
         # print('1',local_num)
         # print('2', protein_num)
         data_pack = todevice(protein1,protein2,protein3,index,label, device)
-        loss = self.model(data_pack, train=True)
+        loss = self.model(data_pack, mode='train')
         # print(loss)
         # loss = loss1 + loss2
         loss.backward()
@@ -639,7 +670,7 @@ class Valid1(object):
             # print('1',local_num)
             # print('2', protein_num)
             data_pack = todevice(protein1, protein2, protein3, index, label, device)
-            correct_labels, predicted_labels, predicted_scores, loss = self.model(data_pack, valid=True)
+            correct_labels, predicted_labels, predicted_scores, loss = self.model(data_pack, mode='valid')
             loss_total += loss.item()
             T.extend(correct_labels)
             Y.extend(predicted_labels)
@@ -648,34 +679,34 @@ class Valid1(object):
         return loss_total, T, Y, S
 
 
-class Tester(object):
-    def __init__(self, model):
-        self.model = model
-
-    def test(self, dataloader, device):
-        self.model.eval()
-        T, Y, S = [], [], []
-        with torch.no_grad():
-            protein1 = dataloader[0]
-            protein2 = dataloader[1]
-            protein3 = dataloader[2]
-            index = dataloader[3]
-            label = dataloader[4]
-            # print('1',local_num)
-            # print('2', protein_num)
-            data_pack = todevice(protein1, protein2, protein3, index, label, device)
-            correct_labels, predicted_labels, predicted_scores = self.model(data_pack, train=False, valid=False)
-            T.extend(correct_labels)
-            Y.extend(predicted_labels)
-            S.extend(predicted_scores)
-        return T, Y, S
-
-    def save_AUCs(self, AUCs, filename):
-        with open(filename, 'a') as f:
-            f.write('\t'.join(map(str, AUCs)) + '\n')
-
-    def save_model(self, model, filename):
-        torch.save(model.module.state_dict(), filename)
+# class Tester(object):
+#     def __init__(self, model):
+#         self.model = model
+#
+#     def test(self, dataloader, device):
+#         self.model.eval()
+#         T, Y, S = [], [], []
+#         with torch.no_grad():
+#             protein1 = dataloader[0]
+#             protein2 = dataloader[1]
+#             protein3 = dataloader[2]
+#             index = dataloader[3]
+#             label = dataloader[4]
+#             # print('1',local_num)
+#             # print('2', protein_num)
+#             data_pack = todevice(protein1, protein2, protein3, index, label, device)
+#             correct_labels, predicted_labels, predicted_scores = self.model(data_pack, train=False, valid=False)
+#             T.extend(correct_labels)
+#             Y.extend(predicted_labels)
+#             S.extend(predicted_scores)
+#         return T, Y, S
+#
+#     def save_AUCs(self, AUCs, filename):
+#         with open(filename, 'a') as f:
+#             f.write('\t'.join(map(str, AUCs)) + '\n')
+#
+#     def save_model(self, model, filename):
+#         torch.save(model.module.state_dict(), filename)
 
 
 class Predictor_test(object):
@@ -699,7 +730,7 @@ class Predictor_test(object):
             # print('2', protein_num)
             #data_pack = todevice(protein1, protein2, protein3, index, device)
             #proteins_new = torch.Tensor(protein).to(device)
-            predicted_labels, predicted_scores = self.model(data_pack, train=False,valid=False)
+            predicted_labels, predicted_scores = self.model(data_pack, mode='test')
             #print('3',precision_score,predicted_labels)
             Y.extend(predicted_labels)
             S.extend(predicted_scores)
