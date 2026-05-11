@@ -137,11 +137,11 @@ def main(seed):
     init_seeds(seed)
 
     """Load preprocessed data."""
-    all_encode_siteT5 = './protein_site.pkl'
-    all_encode_prostt5 = './protein_aa.pkl'
-    model_path="./model/protein-DNA.pkl"
-    feature_ss_rsa='./rsa.csv'
-    fasta_file = './protein.fasta'
+    all_encode_siteT5 = './SiteT5_test70.pkl'
+    all_encode_prostt5 = './ProstT5_test70.pkl'
+    model_path="./model/protein-protein.pkl"
+    feature_ss_rsa='./rsa70.csv'
+    fasta_file = './test70.fasta'
     output_file = './out_protein' + '.txt'
     with open(feature_ss_rsa, newline='') as file12:
         dict11 = feature2(file12)
@@ -162,7 +162,11 @@ def main(seed):
     pf_dim = 256
     dropout = 0.1
     kernel_size = 7
-    score_num = 2
+    score_num = 2.5
+    # protein-DNA task       score_num=2.5  !!!
+    # protein-RNA task       score_num=2  !!!!
+    # protein-protein task   score_num=2.5  !!!!
+    # antibody-antigen task  score_num=1.5  !!!!
 
     encoder1 = Encoder_cnn(protein_dim1, hid_dim, n_layers, kernel_size, dropout, device)
     encoder2 = Encoder_lstm(protein_dim1, hid_dim, n_layers, kernel_size, dropout, device)
@@ -174,7 +178,7 @@ def main(seed):
     model2 = Predictor(encoder1, encoder2, encoder3, decoder2, device, score_num)
     # protein-DNA task       score_num=2.5  !!!
     # protein-RNA task       score_num=2  !!!!
-    # protein-protein task   score_num=2  !!!!
+    # protein-protein task   score_num=2.5  !!!!
     # antibody-antigen task  score_num=1.5  !!!!
     model2.load_state_dict(torch.load(
         model_path,
@@ -244,19 +248,18 @@ def main(seed):
         predicted_labels_test2, predicted_scores_test2 = tester2.test(test_loader2, device)
 
         for i in range(len(predicted_labels_test2)):
-            f.write(name + '\t' + str(seq[i]) + '\t' + str(predicted_labels_test2[i]) + '\t' + str(
-                predicted_scores_test2[i]) + '\n')
+            f.write(name + '\t' + str(seq[i]) + '\t' + str(predicted_labels_test2[i].item()) + '\t' + f"{predicted_scores_test2[i].item():.4f}" + '\n')
 
 if __name__ == "__main__":
     """CPU or GPU"""
-    # if torch.cuda.is_available() :
-    #     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    #     device = torch.device('cuda:0')
-    #
-    #     print('The code uses GPU...')
-    # else:
-    device = torch.device('cpu')
-    print('The code uses CPU!!!')
+    if torch.cuda.is_available() :
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+        device = torch.device('cuda:0')
+
+        print('The code uses GPU...')
+    else:
+        device = torch.device('cpu')
+        print('The code uses CPU!!!')
 
     SEED = 1
     main(SEED)
