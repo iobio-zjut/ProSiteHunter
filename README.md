@@ -30,7 +30,7 @@ ProstT5  https://github.com/mheinzinger/ProstT5
 
 The weight files of SiteT5   https://doi.org/10.5281/zenodo.17369404
 
-The generated embeddings of ProstT5 and SiteT5 can be downloaded in the releases.（https://github.com/iobio-zjut/ProSiteHunter/releases/tag/v1.0）
+The generated embeddings of ProstT5 and SiteT5 can be downloaded in the releases. https://github.com/iobio-zjut/ProSiteHunter/releases/tag/v1.0
 
 Positional encoding, Physicochemical properties and BLOSUM62 will be automatically generated during training or testing. 
 
