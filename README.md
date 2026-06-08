@@ -36,8 +36,7 @@ Positional encoding, Physicochemical properties and BLOSUM62 will be automatical
 
 Please visit NetSurfP-3.0 online server for RSA and Secondary structure generation (https://services.healthtech.dtu.dk/services/NetSurfP-3.0/)
 
-## Train and Predict
+## Predict
 ```
-python ./main/train.py
 python ./main/predict.py
 ```
