@@ -34,7 +34,7 @@ The generated embeddings of ProstT5 and SiteT5 can be downloaded in the releases
 
 Positional encoding, Physicochemical properties and BLOSUM62 will be automatically generated during training or testing. 
 
-RSA and secondary structure features can be generated using the NetSurfP-3.0 online server:(https://services.healthtech.dtu.dk/services/NetSurfP-3.0/)
+RSA and secondary structure features can be generated using the NetSurfP-3.0 online server:(https://services.healthtech.dtu.dk/services/NetSurfP-3.0/). 
 Alternatively, users may directly download the precomputed feature files from the ProSiteHunter release page:(https://github.com/iobio-zjut/ProSiteHunter/releases/tag/v1.0/)
 
 
